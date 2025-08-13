@@ -1,430 +1,567 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#000000" />
-  <title>Mobile Fast Text Reader</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile Fast Text Reader</title>
+    
+    <!-- PWA Manifest (inlined as data URL) -->
+    <link rel="manifest" href="data:application/manifest+json;base64,ewogICJuYW1lIjogIk1vYmlsZSBGYXN0IFRleHQgUmVhZGVyIiwKICAic2hvcnRfbmFtZSI6ICJGYXN0UmVhZGVyIiwKICAiaWNvbnMiOiBbCiAgICB7CiAgICAgICJzcmMiOiAiaHR0cHM6Ly9wbGFjZWhvbGQuY28vMTkyeDE5Mi8xRDI5M0IvRkZGRkZGP3RleHQ9UlQxOTIiLAogICAgICAic2l6ZXMiOiAiMTkyeDE5MiIsCiAgICAgICJ0eXBlIjogImltYWdlL3BuZyIKICAgIH0sCiAgICB7CiAgICAgICJzcmMiOiAiaHR0cHM6Ly9wbGFjZWhvbGQuY28vNTEyeDUxMi8xRDI5M0IvRkZGRkZGP3RleHQ9UlQ1MTIiLAogICAgICAic2l6ZXMiOiAiNTEyeDUxMiIsCiAgICAgICJ0eXBlIjogImltYWdlL3BuZyIKICAgIH0KICBdLAogICJzdGFydF91cmwiOiAiLiIsCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsCiAgImJhY2tncm91bmRfY29sb3IiOiAiIzFEMjkzQiIsCiAgInRoZW1lX2NvbG9yIjogIiMxRDI5M0IiCn0=">
+    <meta name="theme-color" content="#1D293B">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
-  <!-- Inter font -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-  <!-- Tailwind (CDN) -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: { inter: ["Inter", "ui-sans-serif", "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"] },
-          colors: { base: { bg: "#000000", card: "#0b0b0b", edge: "#232323" } }
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <!-- Client-side Libraries for File Parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.min.js"></script>
+    <script>pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.worker.min.js`;</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+
+    <style>
+        /* Custom styles for a cleaner look and feel */
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent; /* Disable tap highlight on mobile */
         }
-      },
-      darkMode: 'class'
-    }
-  </script>
-  <style>
-    html, body { height: 100%; }
-    body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
-    /* iOS full-bleed safe area */
-    .safe-pb { padding-bottom: env(safe-area-inset-bottom); }
-    .safe-pt { padding-top: env(safe-area-inset-top); }
-    /* Prevent text selection on the display area */
-    #display { -webkit-user-select: none; user-select: none; }
-  </style>
-
-  <!-- Manifest: injected as a data URL at runtime to keep everything single-file -->
-  <link id="manifest-link" rel="manifest" href="data:application/manifest+json,{ }">
-
-  <!-- PDF.js (global build) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.9.179/pdf.min.js" integrity="sha512-hIXbR1r3r6qG9cA4hPYQmWf+SAAeTRzLh3z0M+Qx0e6w2bZtZ7QjD+8V6v3k6pWJ7uT1KI7oU5z0w1+q0w4CNw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <!-- JSZip for EPUB parsing -->
-  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+        /* Custom styles for range sliders */
+        input[type=range] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 8px;
+            background: #4A5568; /* gray-700 */
+            border-radius: 9999px;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+        }
+        input[type=range]:hover {
+            opacity: 1;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #A0AEC0; /* gray-400 */
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid #1A202C; /* gray-900 */
+        }
+        input[type=range]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #A0AEC0; /* gray-400 */
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid #1A202C; /* gray-900 */
+        }
+        /* Style for the fullscreen mode */
+        #fullscreen-view {
+            background-color: #000;
+        }
+    </style>
 </head>
-<body class="bg-base-bg text-white min-h-screen flex flex-col">
-  <!-- App Shell -->
-  <header class="safe-pt px-4 py-3 border-b border-base-edge bg-base-bg/95 backdrop-blur">
-    <div class="max-w-screen-md mx-auto flex items-center justify-between">
-      <h1 class="text-lg font-bold tracking-tight">Mobile Fast Text Reader</h1>
-      <div class="flex items-center gap-2">
-        <button id="btnInstall" class="text-xs px-3 py-1.5 rounded-lg border border-base-edge bg-base-card hover:bg-zinc-900 hidden">Install</button>
-        <button id="btnFullscreen" class="text-xs px-3 py-1.5 rounded-lg border border-base-edge bg-base-card hover:bg-zinc-900" title="Fullscreen">Fullscreen</button>
-      </div>
+<body class="bg-gray-900 text-gray-300 flex flex-col h-screen antialiased">
+
+    <!-- Main Content Area -->
+    <main id="main-content" class="flex-grow flex flex-col items-center justify-center p-4 transition-all duration-300">
+        
+        <!-- Word Display Area -->
+        <div id="word-display-wrapper" class="w-full max-w-4xl h-48 md:h-64 flex items-center justify-center bg-gray-800 rounded-lg shadow-lg mb-6 cursor-pointer select-none relative overflow-hidden">
+            <span id="word-display" class="text-gray-100 font-bold transition-all duration-100" style="font-size: 48px;">Ready</span>
+            <!-- Progress Bar -->
+            <div class="absolute bottom-0 left-0 h-1 bg-indigo-500" id="progress-bar" style="width: 0%;"></div>
+        </div>
+
+        <!-- Controls -->
+        <div class="w-full max-w-4xl space-y-6">
+            <!-- Playback & Navigation Controls -->
+            <div class="grid grid-cols-3 gap-4">
+                <button id="prev-word-btn" class="bg-gray-700 hover:bg-gray-600 text-gray-200 font-bold py-3 px-4 rounded-lg transition duration-200 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                </button>
+                <button id="play-pause-btn" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-4 rounded-lg transition duration-200 flex items-center justify-center text-lg">
+                    <svg id="play-icon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <svg id="pause-icon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <span id="play-pause-text">Play</span>
+                </button>
+                <button id="next-word-btn" class="bg-gray-700 hover:bg-gray-600 text-gray-200 font-bold py-3 px-4 rounded-lg transition duration-200 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                </button>
+            </div>
+            
+            <!-- WPM Control -->
+            <div class="bg-gray-800 p-4 rounded-lg shadow-md">
+                <label for="wpm-slider" class="block text-sm font-medium text-gray-400 mb-2">Speed (WPM)</label>
+                <div class="flex items-center space-x-4">
+                    <input type="range" id="wpm-slider" min="50" max="1000" value="300" class="flex-grow">
+                    <input type="number" id="wpm-input" min="50" max="1000" value="300" class="w-20 bg-gray-700 border border-gray-600 rounded-md text-center">
+                </div>
+            </div>
+
+            <!-- Font Size Control -->
+            <div class="bg-gray-800 p-4 rounded-lg shadow-md">
+                <label for="size-slider" class="block text-sm font-medium text-gray-400 mb-2">Text Size (px)</label>
+                <div class="flex items-center space-x-4">
+                    <input type="range" id="size-slider" min="16" max="128" value="48" class="flex-grow">
+                    <input type="number" id="size-input" min="16" max="128" value="48" class="w-20 bg-gray-700 border border-gray-600 rounded-md text-center">
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer / Text Input Area -->
+    <footer id="footer-content" class="w-full bg-gray-800 p-4 shadow-inner_top transition-all duration-300">
+        <div class="w-full max-w-4xl mx-auto">
+            <textarea id="text-input" class="w-full h-24 bg-gray-700 border border-gray-600 rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-200 resize-none" placeholder="Paste text here, or drop a .txt, .pdf, or .epub file..."></textarea>
+            <div class="flex justify-between items-center mt-3">
+                <div class="flex items-center space-x-2">
+                    <label for="file-input" class="cursor-pointer bg-gray-700 hover:bg-gray-600 text-gray-200 font-semibold py-2 px-4 rounded-lg transition duration-200">
+                        Upload File
+                    </label>
+                    <input type="file" id="file-input" class="hidden" accept=".txt,.pdf,.epub">
+                    <span id="file-name" class="text-sm text-gray-400">No file selected.</span>
+                </div>
+                <button id="fullscreen-btn" class="bg-gray-700 hover:bg-gray-600 text-gray-200 p-2 rounded-lg transition duration-200" title="Toggle Fullscreen">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 1v4m0 0h-4m4 0l-5-5" /></svg>
+                </button>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Fullscreen View (hidden by default) -->
+    <div id="fullscreen-view" class="fixed inset-0 w-full h-full flex items-center justify-center hidden z-50">
+        <span id="fullscreen-word-display" class="text-white font-bold" style="font-size: 72px;"></span>
     </div>
-  </header>
 
-  <main class="flex-1">
-    <div class="max-w-screen-md mx-auto p-4 pb-24">
-      <!-- Display / Player Stage -->
-      <section id="stage" class="mb-4">
-        <div id="display" class="w-full rounded-2xl bg-base-card border border-base-edge min-h-[40vh] flex items-center justify-center px-4 py-10 active:opacity-90">
-          <div id="currentWord" class="font-extrabold tracking-tight text-center leading-none select-none text-[10vw] sm:text-[7vw]"></div>
-        </div>
-        <p class="text-xs text-zinc-400 mt-2 text-center">Tap to play/pause • Swipe ◀︎ / ▶︎ to step</p>
-      </section>
-
-      <!-- Controls -->
-      <section class="grid grid-cols-1 gap-3">
-        <!-- Transport -->
-        <div class="flex items-center gap-3">
-          <button id="btnPlay" class="flex-1 px-4 py-3 rounded-xl bg-white text-black font-semibold hover:opacity-90 active:opacity-80">Play</button>
-          <button id="btnPause" class="flex-1 px-4 py-3 rounded-xl bg-zinc-800 border border-base-edge hover:bg-zinc-900">Pause</button>
-          <span id="posBadge" class="text-xs text-zinc-400 min-w-[4.5rem] text-right">0 / 0</span>
-        </div>
-
-        <!-- Speed (WPM) -->
-        <div class="p-3 rounded-xl bg-base-card border border-base-edge">
-          <div class="flex items-center justify-between mb-2">
-            <label class="font-semibold">Speed (WPM)</label>
-            <input id="wpmNumber" type="number" min="50" max="1000" step="10" value="300" class="w-24 bg-black border border-base-edge rounded-lg px-2 py-1" />
-          </div>
-          <input id="wpmSlider" type="range" min="50" max="1000" step="10" value="300" class="w-full" />
-        </div>
-
-        <!-- Text Size -->
-        <div class="p-3 rounded-xl bg-base-card border border-base-edge">
-          <div class="flex items-center justify-between mb-2">
-            <label class="font-semibold">Text Size</label>
-            <input id="sizeNumber" type="number" min="16" max="160" step="1" value="72" class="w-24 bg-black border border-base-edge rounded-lg px-2 py-1" />
-          </div>
-          <input id="sizeSlider" type="range" min="16" max="160" step="1" value="72" class="w-full" />
-        </div>
-      </section>
-
-      <!-- Source Input -->
-      <section class="mt-4 p-3 rounded-xl bg-base-card border border-base-edge">
-        <div class="flex items-center justify-between gap-3 flex-wrap">
-          <div class="flex items-center gap-3">
-            <label for="fileInput" class="text-sm">Open file:</label>
-            <input id="fileInput" type="file" accept=".txt,.pdf,.epub" class="text-sm file:mr-3 file:px-3 file:py-1.5 file:border-0 file:rounded-md file:bg-white file:text-black file:font-medium file:hover:opacity-90" />
-          </div>
-          <button id="btnUseText" class="px-3 py-2 rounded-lg border border-base-edge bg-zinc-800 hover:bg-zinc-900">Load textarea → Reader</button>
-        </div>
-
-        <textarea id="inputText" placeholder="Paste text here, or drag & drop .txt / .pdf / .epub" class="mt-3 w-full h-48 p-3 rounded-lg bg-black border border-base-edge resize-y"></textarea>
-      </section>
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-red-500 text-white py-2 px-4 rounded-lg shadow-lg opacity-0 transition-opacity duration-300">
+        <span id="toast-message"></span>
     </div>
-  </main>
 
-  <!-- Bottom bar -->
-  <footer class="safe-pb fixed bottom-0 inset-x-0 bg-base-bg/90 backdrop-blur border-t border-base-edge">
-    <div class="max-w-screen-md mx-auto px-4 py-2 flex items-center justify-between gap-3">
-      <div class="text-xs text-zinc-400">Client-side • No accounts • Offline-capable</div>
-      <div class="text-xs text-zinc-500">© <span id="yy"></span> Han KM</div>
-    </div>
-  </footer>
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
 
-  <script>
-    // ==== Manifest (inline via data URL) ====
-    (function attachManifest(){
-      const manifest = {
-        name: "Mobile Fast Text Reader",
-        short_name: "Fast Reader",
-        start_url: ".",
-        scope: ".",
-        display: "standalone",
-        background_color: "#000000",
-        theme_color: "#000000",
-        icons: [
-          { src: "https://placehold.co/192x192/png?text=App", sizes: "192x192", type: "image/png", purpose: "any" },
-          { src: "https://placehold.co/512x512/png?text=App", sizes: "512x512", type: "image/png", purpose: "any" },
-          { src: "https://placehold.co/512x512/png?text=Mask", sizes: "512x512", type: "image/png", purpose: "maskable" }
-        ]
-      };
-      const href = 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(JSON.stringify(manifest));
-      document.getElementById('manifest-link').setAttribute('href', href);
-    })();
+        // --- PWA Service Worker Registration ---
+        if ('serviceWorker' in navigator) {
+            const swContent = `
+                const CACHE_NAME = 'fast-text-reader-cache-v1';
+                const urlsToCache = [
+                    '/',
+                    'index.html' // Cache the main file
+                ];
 
-    // ==== Lightweight Service Worker (single-file) ====
-    if ('serviceWorker' in navigator) {
-      const swCode = `
-        const CACHE = 'mfr-v1';
-        self.addEventListener('install', (e) => {
-          e.waitUntil((async () => {
-            const cache = await caches.open(CACHE);
-            try { await cache.addAll(['./']); } catch (e) { /* ignore */ }
-            self.skipWaiting();
-          })());
-        });
-        self.addEventListener('activate', (e) => {
-          e.waitUntil((async () => {
-            const keys = await caches.keys();
-            await Promise.all(keys.map(k => k === CACHE ? null : caches.delete(k)));
-            self.clients.claim();
-          })());
-        });
-        self.addEventListener('fetch', (event) => {
-          const req = event.request;
-          if (req.mode === 'navigate') {
-            event.respondWith((async () => {
-              try { return await fetch(req); } catch (err) {
-                const cached = await caches.match('./');
-                return cached || Response.error();
-              }
-            })());
-            return;
-          }
-          event.respondWith((async () => {
-            try { return await fetch(req); } catch (err) {
-              const cached = await caches.match(req);
-              return cached || Response.error();
+                self.addEventListener('install', event => {
+                    event.waitUntil(
+                        caches.open(CACHE_NAME)
+                            .then(cache => {
+                                console.log('Opened cache');
+                                // We cache the root '/' which should point to index.html
+                                return cache.add('/');
+                            })
+                    );
+                });
+
+                self.addEventListener('fetch', event => {
+                    event.respondWith(
+                        caches.match(event.request)
+                            .then(response => {
+                                // Cache hit - return response
+                                if (response) {
+                                    return response;
+                                }
+                                return fetch(event.request);
+                            }
+                        )
+                    );
+                });
+            `;
+            const swBlob = new Blob([swContent], { type: 'application/javascript' });
+            const swUrl = URL.createObjectURL(swBlob);
+            navigator.serviceWorker.register(swUrl)
+                .then(registration => console.log('ServiceWorker registration successful with scope: ', registration.scope))
+                .catch(error => console.log('ServiceWorker registration failed: ', error));
+        }
+
+        // --- DOM Element References ---
+        const DOMElements = {
+            wordDisplay: document.getElementById('word-display'),
+            playPauseBtn: document.getElementById('play-pause-btn'),
+            playIcon: document.getElementById('play-icon'),
+            pauseIcon: document.getElementById('pause-icon'),
+            playPauseText: document.getElementById('play-pause-text'),
+            prevWordBtn: document.getElementById('prev-word-btn'),
+            nextWordBtn: document.getElementById('next-word-btn'),
+            wpmSlider: document.getElementById('wpm-slider'),
+            wpmInput: document.getElementById('wpm-input'),
+            sizeSlider: document.getElementById('size-slider'),
+            sizeInput: document.getElementById('size-input'),
+            textInput: document.getElementById('text-input'),
+            fileInput: document.getElementById('file-input'),
+            fileName: document.getElementById('file-name'),
+            wordDisplayWrapper: document.getElementById('word-display-wrapper'),
+            progressBar: document.getElementById('progress-bar'),
+            fullscreenBtn: document.getElementById('fullscreen-btn'),
+            fullscreenView: document.getElementById('fullscreen-view'),
+            fullscreenWordDisplay: document.getElementById('fullscreen-word-display'),
+            mainContent: document.getElementById('main-content'),
+            footerContent: document.getElementById('footer-content'),
+            toast: document.getElementById('toast'),
+            toastMessage: document.getElementById('toast-message'),
+        };
+
+        // --- Application State ---
+        const state = {
+            words: [],
+            currentIndex: 0,
+            isPlaying: false,
+            wpm: 300,
+            fontSize: 48,
+            intervalId: null,
+            touchStartX: 0,
+            touchEndX: 0,
+        };
+
+        // --- Core Reader Logic ---
+        const reader = {
+            loadText(text) {
+                this.stop();
+                state.words = text.trim().split(/\s+/).filter(word => word.length > 0);
+                state.currentIndex = 0;
+                if (state.words.length > 0) {
+                    this.updateDisplay();
+                    DOMElements.playPauseBtn.disabled = false;
+                } else {
+                    DOMElements.wordDisplay.textContent = 'No text';
+                    DOMElements.playPauseBtn.disabled = true;
+                }
+            },
+
+            play() {
+                if (state.isPlaying || state.words.length === 0) return;
+                state.isPlaying = true;
+                this.updatePlayPauseUI();
+                const interval = 60000 / state.wpm;
+                state.intervalId = setInterval(() => {
+                    if (state.currentIndex < state.words.length - 1) {
+                        state.currentIndex++;
+                        this.updateDisplay();
+                    } else {
+                        this.stop();
+                    }
+                }, interval);
+            },
+
+            pause() {
+                if (!state.isPlaying) return;
+                state.isPlaying = false;
+                clearInterval(state.intervalId);
+                state.intervalId = null;
+                this.updatePlayPauseUI();
+            },
+
+            stop() {
+                this.pause();
+                state.currentIndex = 0;
+                this.updateDisplay();
+            },
+
+            togglePlayPause() {
+                state.isPlaying ? this.pause() : this.play();
+            },
+
+
+            nextWord() {
+                this.pause();
+                if (state.currentIndex < state.words.length - 1) {
+                    state.currentIndex++;
+                    this.updateDisplay();
+                }
+            },
+
+            prevWord() {
+                this.pause();
+                if (state.currentIndex > 0) {
+                    state.currentIndex--;
+                    this.updateDisplay();
+                }
+            },
+
+            setWPM(newWpm) {
+                state.wpm = parseInt(newWpm, 10);
+                if (state.isPlaying) {
+                    this.pause();
+                    this.play();
+                }
+            },
+
+            setFontSize(newSize) {
+                state.fontSize = parseInt(newSize, 10);
+                DOMElements.wordDisplay.style.fontSize = `${state.fontSize}px`;
+                DOMElements.fullscreenWordDisplay.style.fontSize = `${Math.round(state.fontSize * 1.5)}px`;
+            },
+
+            updateDisplay() {
+                if (state.words.length > 0) {
+                    const word = state.words[state.currentIndex];
+                    DOMElements.wordDisplay.textContent = word;
+                    DOMElements.fullscreenWordDisplay.textContent = word;
+                    const progress = (state.currentIndex + 1) / state.words.length * 100;
+                    DOMElements.progressBar.style.width = `${progress}%`;
+                } else {
+                    DOMElements.wordDisplay.textContent = 'Ready';
+                    DOMElements.fullscreenWordDisplay.textContent = '';
+                    DOMElements.progressBar.style.width = '0%';
+                }
+            },
+
+            updatePlayPauseUI() {
+                if (state.isPlaying) {
+                    DOMElements.playIcon.classList.add('hidden');
+                    DOMElements.pauseIcon.classList.remove('hidden');
+                    DOMElements.playPauseText.textContent = 'Pause';
+                } else {
+                    DOMElements.playIcon.classList.remove('hidden');
+                    DOMElements.pauseIcon.classList.add('hidden');
+                    DOMElements.playPauseText.textContent = 'Play';
+                }
             }
-          })());
+        };
+
+        // --- File Handling ---
+        const fileHandler = {
+            handleFile(file) {
+                if (!file) return;
+                DOMElements.fileName.textContent = file.name;
+                const extension = file.name.split('.').pop().toLowerCase();
+
+                switch (extension) {
+                    case 'txt':
+                        this.readTxt(file);
+                        break;
+                    case 'pdf':
+                        this.readPdf(file);
+                        break;
+                    case 'epub':
+                        this.readEpub(file);
+                        break;
+                    default:
+                        showToast(`Unsupported file type: .${extension}`);
+                        DOMElements.fileName.textContent = 'Invalid file.';
+                }
+            },
+
+            readTxt(file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    DOMElements.textInput.value = e.target.result;
+                    reader.loadText(e.target.result);
+                };
+                reader.readAsText(file);
+            },
+
+            async readPdf(file) {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    try {
+                        const pdf = await pdfjsLib.getDocument({ data: e.target.result }).promise;
+                        let fullText = '';
+                        for (let i = 1; i <= pdf.numPages; i++) {
+                            const page = await pdf.getPage(i);
+                            const textContent = await page.getTextContent();
+                            fullText += textContent.items.map(item => item.str).join(' ') + '\n';
+                        }
+                        DOMElements.textInput.value = fullText;
+                        reader.loadText(fullText);
+                    } catch (error) {
+                        console.error('Error parsing PDF:', error);
+                        showToast('Failed to parse PDF file.');
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            },
+
+            async readEpub(file) {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    try {
+                        const zip = await JSZip.loadAsync(e.target.result);
+                        const contentFile = await zip.file("OEBPS/content.opf")?.async("string") || await zip.file("content.opf")?.async("string");
+                        if (!contentFile) throw new Error("content.opf not found");
+                        
+                        const parser = new DOMParser();
+                        const xmlDoc = parser.parseFromString(contentFile, "text/xml");
+                        const itemIds = Array.from(xmlDoc.getElementsByTagName("itemref")).map(item => item.getAttribute("idref"));
+                        
+                        let fullText = '';
+                        for (const id of itemIds) {
+                            const href = xmlDoc.querySelector(`item[id="${id}"]`).getAttribute("href");
+                            const chapterFile = zip.file(`OEBPS/${href}`) || zip.file(href);
+                            if (chapterFile) {
+                                const chapterContent = await chapterFile.async("string");
+                                const chapterDoc = parser.parseFromString(chapterContent, "text/html");
+                                fullText += chapterDoc.body.textContent.trim() + '\n\n';
+                            }
+                        }
+                        DOMElements.textInput.value = fullText;
+                        reader.loadText(fullText);
+                    } catch (error) {
+                        console.error('Error parsing EPUB:', error);
+                        showToast('Failed to parse EPUB file.');
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            }
+        };
+
+        // --- UI & Event Listeners ---
+
+        // Play/Pause Button
+        DOMElements.playPauseBtn.addEventListener('click', () => reader.togglePlayPause());
+
+        // Word Navigation
+        DOMElements.prevWordBtn.addEventListener('click', () => reader.prevWord());
+        DOMElements.nextWordBtn.addEventListener('click', () => reader.nextWord());
+
+        // WPM Controls
+        DOMElements.wpmSlider.addEventListener('input', (e) => {
+            DOMElements.wpmInput.value = e.target.value;
+            reader.setWPM(e.target.value);
         });
-      `;
-      const swUrl = URL.createObjectURL(new Blob([swCode], { type: 'text/javascript' }));
-      navigator.serviceWorker.register(swUrl, { scope: './' }).catch(()=>{});
-    }
+        DOMElements.wpmInput.addEventListener('change', (e) => {
+            const value = Math.max(50, Math.min(1000, e.target.value));
+            DOMElements.wpmSlider.value = value;
+            e.target.value = value;
+            reader.setWPM(value);
+        });
 
-    // ==== Install prompt UX (optional) ====
-    let deferredPrompt;
-    const btnInstall = document.getElementById('btnInstall');
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e; btnInstall.classList.remove('hidden');
+        // Font Size Controls
+        DOMElements.sizeSlider.addEventListener('input', (e) => {
+            DOMElements.sizeInput.value = e.target.value;
+            reader.setFontSize(e.target.value);
+        });
+        DOMElements.sizeInput.addEventListener('change', (e) => {
+            const value = Math.max(16, Math.min(128, e.target.value));
+            DOMElements.sizeSlider.value = value;
+            e.target.value = value;
+            reader.setFontSize(value);
+        });
+
+        // Text Area Input
+        DOMElements.textInput.addEventListener('input', (e) => {
+            reader.loadText(e.target.value);
+        });
+
+        // File Input
+        DOMElements.fileInput.addEventListener('change', (e) => {
+            fileHandler.handleFile(e.target.files[0]);
+        });
+
+        // Drag and Drop
+        DOMElements.textInput.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            DOMElements.textInput.classList.add('border-indigo-500', 'bg-gray-600');
+        });
+        DOMElements.textInput.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            DOMElements.textInput.classList.remove('border-indigo-500', 'bg-gray-600');
+        });
+        DOMElements.textInput.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            DOMElements.textInput.classList.remove('border-indigo-500', 'bg-gray-600');
+            const file = e.dataTransfer.files[0];
+            fileHandler.handleFile(file);
+        });
+
+        // Tap to Play/Pause
+        DOMElements.wordDisplayWrapper.addEventListener('click', () => reader.togglePlayPause());
+
+        // Swipe Navigation
+        DOMElements.wordDisplayWrapper.addEventListener('touchstart', (e) => {
+            state.touchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+
+        DOMElements.wordDisplayWrapper.addEventListener('touchend', (e) => {
+            state.touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        });
+
+        function handleSwipe() {
+            const swipeThreshold = 50; // Minimum pixels for a swipe
+            if (state.touchEndX < state.touchStartX - swipeThreshold) {
+                // Swiped left
+                reader.nextWord();
+            }
+            if (state.touchEndX > state.touchStartX + swipeThreshold) {
+                // Swiped right
+                reader.prevWord();
+            }
+        }
+
+        // Fullscreen Mode
+        DOMElements.fullscreenBtn.addEventListener('click', toggleFullscreen);
+        DOMElements.fullscreenView.addEventListener('click', toggleFullscreen); // Exit on tap
+
+        function toggleFullscreen() {
+            const isFullscreen = !DOMElements.fullscreenView.classList.contains('hidden');
+            if (isFullscreen) {
+                DOMElements.fullscreenView.classList.add('hidden');
+                DOMElements.mainContent.classList.remove('hidden');
+                DOMElements.footerContent.classList.remove('hidden');
+            } else {
+                DOMElements.fullscreenView.classList.remove('hidden');
+                DOMElements.mainContent.classList.add('hidden');
+                DOMElements.footerContent.classList.add('hidden');
+                reader.pause(); // Pause when entering fullscreen
+            }
+        }
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+            switch(e.code) {
+                case 'Space':
+                    e.preventDefault();
+                    reader.togglePlayPause();
+                    break;
+                case 'ArrowRight':
+                    reader.nextWord();
+                    break;
+                case 'ArrowLeft':
+                    reader.prevWord();
+                    break;
+                case 'KeyF':
+                    toggleFullscreen();
+                    break;
+            }
+        });
+
+        // Toast Notification
+        function showToast(message) {
+            DOMElements.toastMessage.textContent = message;
+            DOMElements.toast.classList.remove('opacity-0');
+            setTimeout(() => {
+                DOMElements.toast.classList.add('opacity-0');
+            }, 3000);
+        }
+
+        // --- Initial Setup ---
+        reader.setFontSize(state.fontSize);
+        reader.setWPM(state.wpm);
+        reader.updateDisplay();
+        DOMElements.playPauseBtn.disabled = true; // Disabled until text is loaded
     });
-    btnInstall?.addEventListener('click', async () => {
-      btnInstall.classList.add('hidden');
-      try { await deferredPrompt.prompt(); } catch {}
-      deferredPrompt = null;
-    });
-
-    // ==== PDF.js worker setup ====
-    if (window['pdfjsLib']) {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.9.179/pdf.worker.min.js';
-    }
-
-    // ==== Reader State ====
-    const currentWordEl = document.getElementById('currentWord');
-    const displayEl = document.getElementById('display');
-    const inputText = document.getElementById('inputText');
-    const fileInput = document.getElementById('fileInput');
-    const btnPlay = document.getElementById('btnPlay');
-    const btnPause = document.getElementById('btnPause');
-    const posBadge = document.getElementById('posBadge');
-    const yy = document.getElementById('yy');
-    document.getElementById('yy').textContent = new Date().getFullYear();
-
-    const wpmSlider = document.getElementById('wpmSlider');
-    const wpmNumber = document.getElementById('wpmNumber');
-    const sizeSlider = document.getElementById('sizeSlider');
-    const sizeNumber = document.getElementById('sizeNumber');
-    const btnUseText = document.getElementById('btnUseText');
-    const btnFullscreen = document.getElementById('btnFullscreen');
-
-    let words = [];
-    let idx = 0;
-    let playing = false;
-    let tickHandle = null;
-
-    function sanitizeToWords(text) {
-      if (!text) return [];
-      text = text.replace(/\u00AD/g, '')                // soft hyphen
-                 .replace(/\r\n|\r/g, '\n')           // normalise newlines
-                 .replace(/-\n/g, '')                   // hyphenated wrap
-                 .replace(/\n+/g, ' ')                  // flatten newlines
-                 .replace(/\s+/g, ' ')                  // collapse whitespace
-                 .trim();
-      return text ? text.split(' ') : [];
-    }
-
-    function updatePositionBadge() {
-      posBadge.textContent = `${Math.min(idx+1, words.length)} / ${words.length}`;
-    }
-
-    function showWord() {
-      currentWordEl.textContent = words[idx] || '';
-      updatePositionBadge();
-    }
-
-    function setWPM(v) {
-      const val = Math.max(50, Math.min(1000, Number(v) || 300));
-      wpmSlider.value = String(val); wpmNumber.value = String(val);
-      if (playing) { stop(); start(); }
-    }
-
-    function setFontSize(px) {
-      const val = Math.max(16, Math.min(160, Number(px) || 72));
-      sizeSlider.value = String(val); sizeNumber.value = String(val);
-      currentWordEl.style.fontSize = val + 'px';
-    }
-
-    function start() {
-      if (playing || words.length === 0) return;
-      playing = true;
-      btnPlay.classList.add('opacity-60', 'pointer-events-none');
-      btnPause.classList.remove('opacity-60', 'pointer-events-none');
-      const interval = 60000 / Number(wpmSlider.value || 300);
-      tickHandle = setInterval(() => {
-        if (idx < words.length - 1) {
-          idx++; showWord();
-        } else { stop(); }
-      }, interval);
-    }
-
-    function stop() {
-      playing = false;
-      btnPlay.classList.remove('opacity-60', 'pointer-events-none');
-      btnPause.classList.add('opacity-60', 'pointer-events-none');
-      if (tickHandle) { clearInterval(tickHandle); tickHandle = null; }
-    }
-
-    function nextWord() { if (idx < words.length - 1) { idx++; showWord(); } }
-    function prevWord() { if (idx > 0) { idx--; showWord(); } }
-
-    function loadWordsFromText(text) {
-      words = sanitizeToWords(text);
-      idx = 0; showWord();
-    }
-
-    // === File loaders ===
-    async function loadTXT(file) {
-      const text = await file.text();
-      loadWordsFromText(text);
-      inputText.value = text;
-    }
-
-    async function loadPDF(file) {
-      const buf = await file.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
-      let out = '';
-      for (let p = 1; p <= pdf.numPages; p++) {
-        const page = await pdf.getPage(p);
-        const content = await page.getTextContent();
-        out += content.items.map(it => it.str).join(' ') + '\n';
-      }
-      inputText.value = out.trim();
-      loadWordsFromText(out);
-    }
-
-    async function loadEPUB(file) {
-      const ab = await file.arrayBuffer();
-      const zip = await JSZip.loadAsync(ab);
-      // 1) Find rootfile from META-INF/container.xml
-      const containerXML = await zip.file('META-INF/container.xml').async('string').catch(()=>'');
-      if (!containerXML) { alert('Invalid EPUB (no container.xml)'); return; }
-      const cdoc = new DOMParser().parseFromString(containerXML, 'application/xml');
-      const rootPath = cdoc.querySelector('rootfile')?.getAttribute('full-path');
-      if (!rootPath) { alert('Invalid EPUB (no rootfile)'); return; }
-      const rootDir = rootPath.substring(0, rootPath.lastIndexOf('/') + 1);
-      const opf = await zip.file(rootPath).async('string');
-      const opfDoc = new DOMParser().parseFromString(opf, 'application/xml');
-      const manifest = new Map();
-      opfDoc.querySelectorAll('manifest > item').forEach(it => {
-        manifest.set(it.getAttribute('id'), it.getAttribute('href'));
-      });
-      const spineIds = Array.from(opfDoc.querySelectorAll('spine > itemref')).map(n => n.getAttribute('idref'));
-      let text = '';
-      for (const id of spineIds) {
-        const href = manifest.get(id);
-        if (!href) continue;
-        const path = rootDir + href;
-        const file = zip.file(path);
-        if (!file) continue;
-        const xhtml = await file.async('string');
-        const doc = new DOMParser().parseFromString(xhtml, 'text/html');
-        // Remove scripts/styles and get body text
-        doc.querySelectorAll('script,style,noscript').forEach(el => el.remove());
-        const chunk = doc.body?.innerText || '';
-        text += '\n' + chunk + '\n';
-      }
-      text = text.replace(/\n{2,}/g, '\n');
-      inputText.value = text.trim();
-      loadWordsFromText(text);
-    }
-
-    async function handleFile(file) {
-      const ext = (file.name.split('.').pop() || '').toLowerCase();
-      if (ext === 'txt') return loadTXT(file);
-      if (ext === 'pdf') return loadPDF(file);
-      if (ext === 'epub') return loadEPUB(file);
-      // Fallback by MIME
-      if (file.type === 'text/plain') return loadTXT(file);
-      alert('Unsupported file type: ' + file.name);
-    }
-
-    // === UI Events ===
-    btnPlay.addEventListener('click', start);
-    btnPause.addEventListener('click', stop);
-
-    wpmSlider.addEventListener('input', e => setWPM(e.target.value));
-    wpmNumber.addEventListener('input', e => setWPM(e.target.value));
-    sizeSlider.addEventListener('input', e => setFontSize(e.target.value));
-    sizeNumber.addEventListener('input', e => setFontSize(e.target.value));
-
-    btnUseText.addEventListener('click', () => {
-      loadWordsFromText(inputText.value);
-    });
-
-    fileInput.addEventListener('change', async (e) => {
-      const f = e.target.files?.[0]; if (f) await handleFile(f);
-      e.target.value = '';
-    });
-
-    // Drag & drop onto textarea (files only)
-    inputText.addEventListener('dragover', (e) => { e.preventDefault(); });
-    inputText.addEventListener('drop', async (e) => {
-      e.preventDefault();
-      const files = e.dataTransfer?.files; if (!files || !files.length) return;
-      await handleFile(files[0]);
-    });
-
-    // Tap to play/pause, swipe to navigate
-    displayEl.addEventListener('click', () => {
-      playing ? stop() : start();
-    });
-    let touchX = null, touchY = null;
-    displayEl.addEventListener('touchstart', (e) => {
-      if (e.touches.length === 1) {
-        touchX = e.touches[0].clientX; touchY = e.touches[0].clientY;
-      }
-    }, { passive: true });
-    displayEl.addEventListener('touchend', (e) => {
-      if (touchX == null) return;
-      const dx = (e.changedTouches[0].clientX - touchX);
-      const dy = (e.changedTouches[0].clientY - touchY);
-      const TH = 30; // px threshold
-      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > TH) {
-        // Swipe left/right
-        stop();
-        if (dx < 0) nextWord(); else prevWord();
-      } else {
-        // Tap
-        playing ? stop() : start();
-      }
-      touchX = touchY = null;
-    }, { passive: true });
-
-    // Keyboard quickies (space, arrows, F)
-    window.addEventListener('keydown', (e) => {
-      if (e.target && ['INPUT','TEXTAREA'].includes(e.target.tagName)) return;
-      if (e.code === 'Space') { e.preventDefault(); playing ? stop() : start(); }
-      if (e.code === 'ArrowRight') { stop(); nextWord(); }
-      if (e.code === 'ArrowLeft') { stop(); prevWord(); }
-      if (e.code === 'KeyF') { toggleFullscreen(); }
-    });
-
-    // Fullscreen
-    function isFullscreen() { return document.fullscreenElement != null; }
-    function toggleFullscreen() {
-      const el = document.documentElement; // go immersive
-      if (!isFullscreen()) el.requestFullscreen({ navigationUI: 'hide' }).catch(()=>{});
-      else document.exitFullscreen().catch(()=>{});
-    }
-    btnFullscreen.addEventListener('click', toggleFullscreen);
-
-    document.addEventListener('fullscreenchange', () => {
-      const controls = document.querySelectorAll('header, section.grid, section.mt-4, footer');
-      controls.forEach(el => el.classList.toggle('hidden', isFullscreen()));
-      document.getElementById('stage').classList.toggle('mt-6', !isFullscreen());
-      // Force display background to pure black in fullscreen
-      if (isFullscreen()) {
-        displayEl.classList.add('bg-black');
-      } else {
-        displayEl.classList.remove('bg-black');
-      }
-    });
-
-    // Init defaults
-    setWPM(300); setFontSize(72); showWord();
-  </script>
+    </script>
 </body>
 </html>
