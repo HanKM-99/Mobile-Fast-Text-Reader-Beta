@@ -1,612 +1,430 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#000000" />
   <title>Mobile Fast Text Reader</title>
 
-  <!-- PWA Manifest and Theme Color -->
-  <meta name="theme-color" content="#000000">
-  <link rel="apple-touch-icon" href="https://placehold.co/192x192/000000/ffffff?text=MFR">
-  <link rel="manifest" href="data:application/manifest+json;base64,ewogICJuYW1lIjogIk1vYmlsZSBGYXN0IFRleHQgUmVhZGVyIiwKICAic2hvcnRfbmFtZSI6ICJGYXN0IFJlYWRlciIsCiAgInN0YXJ0X3VybCI6ICIuIiwKICAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwKICAiYmFja2dyb3VuZF9jb2xvciI6ICIjMDAwMDAwIiwKICAidGhlbWVfY29sb3IiOiAiIzAwMDAwMCIsCiAgImRlc2NyaXB0aW9uIjogIkEgc2ltcGxlIGFuZCBmYXN0IHRleHQgcmVhZGVyIGZvciBtb2JpbGUgZGV2aWNlcy4iLAogICJpY29ucyI6IFsKICAgIHsgInNyYyI6ICJodHRwczovL3BsYWNlaG9sZC5jby8xOTJ4MTkyLzAwMDAwMC9mZmZmZmY/dGV4dD1NRlIiLCAic2l6ZXMiOiAiMTkyeDE5MiIsICJ0eXBlIjogImltYWdlL3BuZyIgfSwKICAgIHsgInNyYyI6ICJodHRwczovL3BsYWNlaG9sZC5jby81MTJ4NTEyLzAwMDAwMC9mZmZmZmY/dGV4dD1NRlIiLCAic2l6ZXMiOiAiNTEyeDUxMiIsICJ0eXBlIjogImltYWdlL3BuZyIgfQogIF0KfQ==">
-
-  <!-- Google Font: Inter -->
+  <!-- Inter font -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-
-  <!-- Tailwind via CDN -->
+  <!-- Tailwind (CDN) -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       theme: {
         extend: {
-          fontFamily: { inter: ['Inter', 'ui-sans-serif', 'system-ui'] },
-          keyframes: {
-            fadeIn: { '0%': { opacity: 0 }, '100%': { opacity: 1 } },
-            fadeOut: { '0%': { opacity: 1 }, '100%': { opacity: 0 } },
-            slideUp: { '0%': { transform: 'translateY(12px)', opacity: 0 }, '100%': { transform: 'translateY(0)', opacity: 1 } },
-          },
-          animation: {
-            fadeIn: 'fadeIn .25s ease-out',
-            fadeOut: 'fadeOut .25s ease-in',
-            slideUp: 'slideUp .25s ease-out',
-          },
+          fontFamily: { inter: ["Inter", "ui-sans-serif", "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"] },
+          colors: { base: { bg: "#000000", card: "#0b0b0b", edge: "#232323" } }
         }
-      }
+      },
+      darkMode: 'class'
     }
   </script>
-
-  <!-- PDF.js & worker -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
-  <script>
-    // Configure worker for pdf.js
-    if (window['pdfjsLib']) {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
-    }
-  </script>
-
-  <!-- JSZip for EPUB -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-
   <style>
-    html, body { height: 100%; background: #000; }
-    body { color: #fff; font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto; }
-    /* Smooth transitions on container brightness */
-    #appRoot { transition: filter 200ms ease; }
-
-    /* Hide scrollbars in log only for a cleaner look */
-    .thin-scroll::-webkit-scrollbar { width: 8px; }
-    .thin-scroll::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 8px; }
-
-    /* Fullscreen: body class used to suppress regular UI */
-    body.is-fullscreen .app-chrome { display: none !important; }
-    body.is-fullscreen .creator-credit { display: none !important; }
-
-    /* Prevent text selection while playing to reduce accidental highlights */
-    .noselect { -webkit-user-select: none; user-select: none; }
-
-    /* Drag-over styling for drop zone */
-    .drag-over {
-      outline: 2px dashed #3b82f6;
-      outline-offset: -4px;
-      background-color: rgba(59, 130, 246, 0.1);
-    }
+    html, body { height: 100%; }
+    body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+    /* iOS full-bleed safe area */
+    .safe-pb { padding-bottom: env(safe-area-inset-bottom); }
+    .safe-pt { padding-top: env(safe-area-inset-top); }
+    /* Prevent text selection on the display area */
+    #display { -webkit-user-select: none; user-select: none; }
   </style>
+
+  <!-- Manifest: injected as a data URL at runtime to keep everything single-file -->
+  <link id="manifest-link" rel="manifest" href="data:application/manifest+json,{ }">
+
+  <!-- PDF.js (global build) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.9.179/pdf.min.js" integrity="sha512-hIXbR1r3r6qG9cA4hPYQmWf+SAAeTRzLh3z0M+Qx0e6w2bZtZ7QjD+8V6v3k6pWJ7uT1KI7oU5z0w1+q0w4CNw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <!-- JSZip for EPUB parsing -->
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 </head>
-<body class="min-h-screen bg-black text-white">
-  <div id="appRoot" class="min-h-screen flex flex-col app-chrome">
-    <!-- Header -->
-    <header class="w-full px-4 sm:px-6 lg:px-8 py-4 border-b border-white/10 sticky top-0 z-20 bg-black/80 backdrop-blur">
-      <div class="max-w-6xl mx-auto flex items-center justify-between">
+<body class="bg-base-bg text-white min-h-screen flex flex-col">
+  <!-- App Shell -->
+  <header class="safe-pt px-4 py-3 border-b border-base-edge bg-base-bg/95 backdrop-blur">
+    <div class="max-w-screen-md mx-auto flex items-center justify-between">
+      <h1 class="text-lg font-bold tracking-tight">Mobile Fast Text Reader</h1>
+      <div class="flex items-center gap-2">
+        <button id="btnInstall" class="text-xs px-3 py-1.5 rounded-lg border border-base-edge bg-base-card hover:bg-zinc-900 hidden">Install</button>
+        <button id="btnFullscreen" class="text-xs px-3 py-1.5 rounded-lg border border-base-edge bg-base-card hover:bg-zinc-900" title="Fullscreen">Fullscreen</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1">
+    <div class="max-w-screen-md mx-auto p-4 pb-24">
+      <!-- Display / Player Stage -->
+      <section id="stage" class="mb-4">
+        <div id="display" class="w-full rounded-2xl bg-base-card border border-base-edge min-h-[40vh] flex items-center justify-center px-4 py-10 active:opacity-90">
+          <div id="currentWord" class="font-extrabold tracking-tight text-center leading-none select-none text-[10vw] sm:text-[7vw]"></div>
+        </div>
+        <p class="text-xs text-zinc-400 mt-2 text-center">Tap to play/pause • Swipe ◀︎ / ▶︎ to step</p>
+      </section>
+
+      <!-- Controls -->
+      <section class="grid grid-cols-1 gap-3">
+        <!-- Transport -->
         <div class="flex items-center gap-3">
-          <div class="h-8 w-8 rounded-lg bg-white/10 flex items-center justify-center font-bold text-sm">MFR</div>
-          <h1 class="text-lg sm:text-2xl font-bold tracking-tight">Mobile Fast Text Reader</h1>
-        </div>
-        <div class="flex items-center gap-2">
-          <button id="startPauseBtn" class="px-3 sm:px-4 py-2 rounded-xl text-sm font-semibold bg-blue-600 hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 transition">Start</button>
-          <button id="fullscreenBtn" class="px-3 sm:px-4 py-2 rounded-xl text-sm font-semibold bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/30 transition">Fullscreen</button>
-        </div>
-      </div>
-
-      <!-- Tabs -->
-      <div class="max-w-6xl mx-auto mt-4">
-        <nav class="inline-flex rounded-xl overflow-hidden border border-white/10">
-          <button data-tab="settings" class="tab-btn px-4 py-2 text-sm font-medium bg-white/10">Settings</button>
-          <button data-tab="analyzer" class="tab-btn px-4 py-2 text-sm font-medium hover:bg-white/10">Analyzer</button>
-          <button data-tab="converter" class="tab-btn px-4 py-2 text-sm font-medium hover:bg-white/10">Converter</button>
-        </nav>
-      </div>
-    </header>
-
-    <!-- Word Display (non-fullscreen) -->
-    <main class="flex-1 w-full">
-      <section class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div id="displayContainer" class="rounded-2xl border border-white/10 bg-white/5 p-2 sm:p-8">
-          <div id="displayWrapper" class="min-h-[28vh] sm:min-h-[34vh] md:min-h-[40vh] lg:min-h-[48vh] flex items-center justify-center rounded-xl bg-black/60 ring-1 ring-white/10 cursor-pointer">
-            <div class="text-center select-none noselect">
-              <div id="currentWord" class="font-extrabold tracking-tight leading-none" style="font-size: 56px;">Ready?</div>
-              <div id="subtleHint" class="mt-4 text-xs text-white/50">Tap to play/pause, Swipe to navigate</div>
-            </div>
-          </div>
+          <button id="btnPlay" class="flex-1 px-4 py-3 rounded-xl bg-white text-black font-semibold hover:opacity-90 active:opacity-80">Play</button>
+          <button id="btnPause" class="flex-1 px-4 py-3 rounded-xl bg-zinc-800 border border-base-edge hover:bg-zinc-900">Pause</button>
+          <span id="posBadge" class="text-xs text-zinc-400 min-w-[4.5rem] text-right">0 / 0</span>
         </div>
 
-        <!-- Tab Panels -->
-        <div class="mt-8 grid grid-cols-1 gap-6" id="tabPanels">
-          <!-- SETTINGS TAB -->
-          <div id="tab-settings" class="tab-panel">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <!-- Text input -->
-              <div class="lg:col-span-2 rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6">
-                <label for="inputText" class="block text-sm font-semibold mb-2">Input Text (or drop a file)</label>
-                <textarea id="inputText" class="w-full h-[260px] rounded-xl bg-black/60 border border-white/10 p-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-white/30 transition-colors" placeholder="Paste your text here, or drag and drop a .txt, .pdf, or .epub file onto this area."></textarea>
-                <div class="mt-4 flex items-center justify-between gap-3">
-                   <div class="text-xs text-white/60 flex items-center gap-4">
-                    <div><span class="font-semibold">Words:</span> <span id="textInfoWordCount">0</span></div>
-                    <div><span class="font-semibold">Est. Time:</span> <span id="textInfoTime">0m 0s</span></div>
-                  </div>
-                  <div>
-                    <label class="inline-flex items-center gap-2 cursor-pointer text-xs">
-                      <input id="autoFullscreenOnStart" type="checkbox" class="h-4 w-4 rounded border-white/20 bg-black/40" />
-                      <span>Ask for fullscreen</span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Controls -->
-              <div class="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 space-y-6">
-                <!-- Speed -->
-                <div>
-                  <div class="flex items-center justify-between mb-1">
-                    <label class="text-sm font-semibold">Speed (WPM)</label>
-                    <div class="flex items-center gap-2">
-                      <button class="ctrl-btn wpm-dec px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-sm">-</button>
-                      <input id="wpmInput" type="number" min="50" max="1000" step="10" class="w-20 rounded-lg bg-black/60 border border-white/10 p-1.5 text-sm text-center" />
-                      <button class="ctrl-btn wpm-inc px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-sm">+</button>
-                    </div>
-                  </div>
-                  <input id="wpmRange" type="range" min="50" max="1000" step="10" class="w-full" />
-                </div>
-
-                <!-- Text size -->
-                <div>
-                  <div class="flex items-center justify-between mb-1">
-                    <label class="text-sm font-semibold">Text Size (px)</label>
-                    <div class="flex items-center gap-2">
-                      <button class="ctrl-btn size-dec px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-sm">-</button>
-                      <input id="sizeInput" type="number" min="20" max="120" step="2" class="w-20 rounded-lg bg-black/60 border border-white/10 p-1.5 text-sm text-center" />
-                      <button class="ctrl-btn size-inc px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-sm">+</button>
-                    </div>
-                  </div>
-                  <input id="sizeRange" type="range" min="20" max="120" step="2" class="w-full" />
-                </div>
-
-                <!-- Brightness -->
-                <div>
-                  <div class="flex items-center justify-between mb-1">
-                    <label class="text-sm font-semibold">Brightness</label>
-                    <span id="brightnessLabel" class="text-xs text-white/60">100%</span>
-                  </div>
-                  <input id="brightnessRange" type="range" min="0" max="100" step="1" class="w-full" />
-                </div>
-
-                <!-- File upload -->
-                <div class="flex items-center gap-3">
-                  <label class="flex-1">
-                    <span class="block text-sm font-semibold mb-1">Upload File</span>
-                    <input id="fileUpload" type="file" accept=".txt,.pdf,.epub" class="block w-full text-sm file:mr-3 file:px-3 file:py-2 file:rounded-lg file:border-0 file:bg-white/10 file:text-white file:hover:bg-white/20" />
-                  </label>
-                </div>
-              </div>
-            </div>
-             <!-- Shortcut Guide -->
-            <div class="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6">
-                <h3 class="text-sm font-semibold mb-3">Controls</h3>
-                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-4 gap-y-2 text-sm">
-                    <div><kbd class="font-mono font-semibold p-1 rounded bg-black/50">Tap</kbd> <span class="text-white/70 ml-2">Play / Pause</span></div>
-                    <div><kbd class="font-mono font-semibold p-1 rounded bg-black/50">Swipe</kbd> <span class="text-white/70 ml-2">Next/Prev Word</span></div>
-                    <div><kbd class="font-mono font-semibold p-1 rounded bg-black/50">Space</kbd> <span class="text-white/70 ml-2">Play / Pause</span></div>
-                    <div><kbd class="font-mono font-semibold p-1 rounded bg-black/50">Shift+Enter</kbd> <span class="text-white/70 ml-2">Fullscreen</span></div>
-                </div>
-            </div>
+        <!-- Speed (WPM) -->
+        <div class="p-3 rounded-xl bg-base-card border border-base-edge">
+          <div class="flex items-center justify-between mb-2">
+            <label class="font-semibold">Speed (WPM)</label>
+            <input id="wpmNumber" type="number" min="50" max="1000" step="10" value="300" class="w-24 bg-black border border-base-edge rounded-lg px-2 py-1" />
           </div>
+          <input id="wpmSlider" type="range" min="50" max="1000" step="10" value="300" class="w-full" />
+        </div>
 
-          <!-- ANALYZER TAB -->
-          <div id="tab-analyzer" class="tab-panel hidden">
-             <!-- Content remains the same -->
+        <!-- Text Size -->
+        <div class="p-3 rounded-xl bg-base-card border border-base-edge">
+          <div class="flex items-center justify-between mb-2">
+            <label class="font-semibold">Text Size</label>
+            <input id="sizeNumber" type="number" min="16" max="160" step="1" value="72" class="w-24 bg-black border border-base-edge rounded-lg px-2 py-1" />
           </div>
-
-          <!-- CONVERTER TAB -->
-          <div id="tab-converter" class="tab-panel hidden">
-             <!-- Content remains the same -->
-          </div>
+          <input id="sizeSlider" type="range" min="16" max="160" step="1" value="72" class="w-full" />
         </div>
       </section>
-    </main>
-  </div>
 
-  <!-- Creator credit (hidden in fullscreen) -->
-  <div class="creator-credit fixed bottom-3 right-4 text-xs text-white/40">Created by <span class="font-semibold">Han KM</span></div>
+      <!-- Source Input -->
+      <section class="mt-4 p-3 rounded-xl bg-base-card border border-base-edge">
+        <div class="flex items-center justify-between gap-3 flex-wrap">
+          <div class="flex items-center gap-3">
+            <label for="fileInput" class="text-sm">Open file:</label>
+            <input id="fileInput" type="file" accept=".txt,.pdf,.epub" class="text-sm file:mr-3 file:px-3 file:py-1.5 file:border-0 file:rounded-md file:bg-white file:text-black file:font-medium file:hover:opacity-90" />
+          </div>
+          <button id="btnUseText" class="px-3 py-2 rounded-lg border border-base-edge bg-zinc-800 hover:bg-zinc-900">Load textarea → Reader</button>
+        </div>
 
-  <!-- Fullscreen ONLY word view -->
-  <div id="fullscreenOverlay" class="fixed inset-0 bg-black hidden items-center justify-center z-50 noselect">
-    <div id="fullscreenWord" class="font-extrabold tracking-tight leading-none text-center" style="font-size: 72px;"></div>
-  </div>
+        <textarea id="inputText" placeholder="Paste text here, or drag & drop .txt / .pdf / .epub" class="mt-3 w-full h-48 p-3 rounded-lg bg-black border border-base-edge resize-y"></textarea>
+      </section>
+    </div>
+  </main>
 
-  <!-- Custom Modal (notifications / confirmations) -->
-  <div id="modalRoot" class="fixed inset-0 hidden items-center justify-center z-50">
-    <!-- Modal content remains the same -->
-  </div>
-
-  <!-- Toast (brief messages) -->
-  <div id="toast" class="fixed left-1/2 -translate-x-1/2 bottom-6 px-3 py-2 rounded-lg bg-white/10 border border-white/10 text-xs hidden"></div>
+  <!-- Bottom bar -->
+  <footer class="safe-pb fixed bottom-0 inset-x-0 bg-base-bg/90 backdrop-blur border-t border-base-edge">
+    <div class="max-w-screen-md mx-auto px-4 py-2 flex items-center justify-between gap-3">
+      <div class="text-xs text-zinc-400">Client-side • No accounts • Offline-capable</div>
+      <div class="text-xs text-zinc-500">© <span id="yy"></span> Han KM</div>
+    </div>
+  </footer>
 
   <script>
-    // ======= Service Worker Registration =======
-    // This makes the site installable (PWA) and work offline.
+    // ==== Manifest (inline via data URL) ====
+    (function attachManifest(){
+      const manifest = {
+        name: "Mobile Fast Text Reader",
+        short_name: "Fast Reader",
+        start_url: ".",
+        scope: ".",
+        display: "standalone",
+        background_color: "#000000",
+        theme_color: "#000000",
+        icons: [
+          { src: "https://placehold.co/192x192/png?text=App", sizes: "192x192", type: "image/png", purpose: "any" },
+          { src: "https://placehold.co/512x512/png?text=App", sizes: "512x512", type: "image/png", purpose: "any" },
+          { src: "https://placehold.co/512x512/png?text=Mask", sizes: "512x512", type: "image/png", purpose: "maskable" }
+        ]
+      };
+      const href = 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(JSON.stringify(manifest));
+      document.getElementById('manifest-link').setAttribute('href', href);
+    })();
+
+    // ==== Lightweight Service Worker (single-file) ====
     if ('serviceWorker' in navigator) {
       const swCode = `
-        const CACHE_NAME = 'fast-reader-cache-v1';
-        const urlsToCache = [
-          '/',
-          './index.html' // Cache the main file
-        ];
-        self.addEventListener('install', event => {
-          event.waitUntil(
-            caches.open(CACHE_NAME).then(cache => {
-              console.log('Opened cache');
-              return cache.addAll(urlsToCache);
-            })
-          );
+        const CACHE = 'mfr-v1';
+        self.addEventListener('install', (e) => {
+          e.waitUntil((async () => {
+            const cache = await caches.open(CACHE);
+            try { await cache.addAll(['./']); } catch (e) { /* ignore */ }
+            self.skipWaiting();
+          })());
         });
-        self.addEventListener('fetch', event => {
-          event.respondWith(
-            caches.match(event.request).then(response => {
-              return response || fetch(event.request);
-            })
-          );
+        self.addEventListener('activate', (e) => {
+          e.waitUntil((async () => {
+            const keys = await caches.keys();
+            await Promise.all(keys.map(k => k === CACHE ? null : caches.delete(k)));
+            self.clients.claim();
+          })());
+        });
+        self.addEventListener('fetch', (event) => {
+          const req = event.request;
+          if (req.mode === 'navigate') {
+            event.respondWith((async () => {
+              try { return await fetch(req); } catch (err) {
+                const cached = await caches.match('./');
+                return cached || Response.error();
+              }
+            })());
+            return;
+          }
+          event.respondWith((async () => {
+            try { return await fetch(req); } catch (err) {
+              const cached = await caches.match(req);
+              return cached || Response.error();
+            }
+          })());
         });
       `;
-      const swBlob = new Blob([swCode], { type: 'application/javascript' });
-      const swUrl = URL.createObjectURL(swBlob);
-
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register(swUrl)
-          .then(registration => {
-            console.log('ServiceWorker registration successful with scope: ', registration.scope);
-          }).catch(error => {
-            console.log('ServiceWorker registration failed: ', error);
-          });
-      });
+      const swUrl = URL.createObjectURL(new Blob([swCode], { type: 'text/javascript' }));
+      navigator.serviceWorker.register(swUrl, { scope: './' }).catch(()=>{});
     }
 
+    // ==== Install prompt UX (optional) ====
+    let deferredPrompt;
+    const btnInstall = document.getElementById('btnInstall');
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e; btnInstall.classList.remove('hidden');
+    });
+    btnInstall?.addEventListener('click', async () => {
+      btnInstall.classList.add('hidden');
+      try { await deferredPrompt.prompt(); } catch {}
+      deferredPrompt = null;
+    });
 
-    // ======= State =======
-    const state = {
-      words: [],
-      index: 0,
-      playing: false,
-      wpm: 300,
-      textSize: 56, // Adjusted default for mobile
-      brightness: 100,
-      pauseCount: 0,
-      wordsDisplayed: 0,
-      timeSpentSec: 0,
-      lastCountedIndex: -1,
-      playTimer: null,
-      timeTimer: null,
-      wheelCooldown: false,
-      loadedFileName: null,
-      touchStartX: 0, // For swipe detection
-      touchStartY: 0, // For swipe detection
-    };
+    // ==== PDF.js worker setup ====
+    if (window['pdfjsLib']) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.9.179/pdf.worker.min.js';
+    }
 
-    // ======= DOM refs =======
-    const appRoot = document.getElementById('appRoot');
+    // ==== Reader State ====
     const currentWordEl = document.getElementById('currentWord');
-    const fullscreenOverlay = document.getElementById('fullscreenOverlay');
-    const fullscreenWordEl = document.getElementById('fullscreenWord');
-    const displayWrapper = document.getElementById('displayWrapper');
+    const displayEl = document.getElementById('display');
+    const inputText = document.getElementById('inputText');
+    const fileInput = document.getElementById('fileInput');
+    const btnPlay = document.getElementById('btnPlay');
+    const btnPause = document.getElementById('btnPause');
+    const posBadge = document.getElementById('posBadge');
+    const yy = document.getElementById('yy');
+    document.getElementById('yy').textContent = new Date().getFullYear();
 
-    const startPauseBtn = document.getElementById('startPauseBtn');
-    const fullscreenBtn = document.getElementById('fullscreenBtn');
-    
-    // Simplified tab refs for brevity
-    const tabButtons = document.querySelectorAll('.tab-btn');
-    const tabPanels = document.querySelectorAll('.tab-panel');
+    const wpmSlider = document.getElementById('wpmSlider');
+    const wpmNumber = document.getElementById('wpmNumber');
+    const sizeSlider = document.getElementById('sizeSlider');
+    const sizeNumber = document.getElementById('sizeNumber');
+    const btnUseText = document.getElementById('btnUseText');
+    const btnFullscreen = document.getElementById('btnFullscreen');
 
-    const inputTextEl = document.getElementById('inputText');
-    const autoFullscreenOnStartEl = document.getElementById('autoFullscreenOnStart');
+    let words = [];
+    let idx = 0;
+    let playing = false;
+    let tickHandle = null;
 
-    const wpmInput = document.getElementById('wpmInput');
-    const wpmRange = document.getElementById('wpmRange');
-    const sizeInput = document.getElementById('sizeInput');
-    const sizeRange = document.getElementById('sizeRange');
-    const brightnessRange = document.getElementById('brightnessRange');
-    const brightnessLabel = document.getElementById('brightnessLabel');
+    function sanitizeToWords(text) {
+      if (!text) return [];
+      text = text.replace(/\u00AD/g, '')                // soft hyphen
+                 .replace(/\r\n|\r/g, '\n')           // normalise newlines
+                 .replace(/-\n/g, '')                   // hyphenated wrap
+                 .replace(/\n+/g, ' ')                  // flatten newlines
+                 .replace(/\s+/g, ' ')                  // collapse whitespace
+                 .trim();
+      return text ? text.split(' ') : [];
+    }
 
-    const fileUpload = document.getElementById('fileUpload');
-    
-    const textInfoWordCount = document.getElementById('textInfoWordCount');
-    const textInfoTime = document.getElementById('textInfoTime');
+    function updatePositionBadge() {
+      posBadge.textContent = `${Math.min(idx+1, words.length)} / ${words.length}`;
+    }
 
-    // Other refs remain the same...
-    const modalRoot = document.getElementById('modalRoot');
-    const modalTitle = document.getElementById('modalTitle');
-    const modalMessage = document.getElementById('modalMessage');
-    const modalButtons = document.getElementById('modalButtons');
-    const toast = document.getElementById('toast');
+    function showWord() {
+      currentWordEl.textContent = words[idx] || '';
+      updatePositionBadge();
+    }
 
+    function setWPM(v) {
+      const val = Math.max(50, Math.min(1000, Number(v) || 300));
+      wpmSlider.value = String(val); wpmNumber.value = String(val);
+      if (playing) { stop(); start(); }
+    }
 
-    // ======= Utilities (mostly unchanged) =======
-    function formatTime(sec) { /* ... */ }
-    function formatMinutesSeconds(totalSeconds) { /* ... */ }
-    function logEvent(message) { /* ... */ }
-    function showToast(message, ms = 1800) { /* ... */ }
-    function showModal({ title, message, buttons }) { /* ... */ }
-    function hideModal() { /* ... */ }
-    function sanitizeAndSplit(text) { /* ... */ }
+    function setFontSize(px) {
+      const val = Math.max(16, Math.min(160, Number(px) || 72));
+      sizeSlider.value = String(val); sizeNumber.value = String(val);
+      currentWordEl.style.fontSize = val + 'px';
+    }
 
-    // ======= Core Functions =======
-    function updateWordDisplays() {
-      const word = state.words[state.index] ?? '';
-      currentWordEl.textContent = word || '—';
-      fullscreenWordEl.textContent = word || '';
-      if (state.index !== state.lastCountedIndex) {
-        state.wordsDisplayed += 1;
-        state.lastCountedIndex = state.index;
-        // updateStatsUI(); // Can be uncommented if Analyzer tab is used
+    function start() {
+      if (playing || words.length === 0) return;
+      playing = true;
+      btnPlay.classList.add('opacity-60', 'pointer-events-none');
+      btnPause.classList.remove('opacity-60', 'pointer-events-none');
+      const interval = 60000 / Number(wpmSlider.value || 300);
+      tickHandle = setInterval(() => {
+        if (idx < words.length - 1) {
+          idx++; showWord();
+        } else { stop(); }
+      }, interval);
+    }
+
+    function stop() {
+      playing = false;
+      btnPlay.classList.remove('opacity-60', 'pointer-events-none');
+      btnPause.classList.add('opacity-60', 'pointer-events-none');
+      if (tickHandle) { clearInterval(tickHandle); tickHandle = null; }
+    }
+
+    function nextWord() { if (idx < words.length - 1) { idx++; showWord(); } }
+    function prevWord() { if (idx > 0) { idx--; showWord(); } }
+
+    function loadWordsFromText(text) {
+      words = sanitizeToWords(text);
+      idx = 0; showWord();
+    }
+
+    // === File loaders ===
+    async function loadTXT(file) {
+      const text = await file.text();
+      loadWordsFromText(text);
+      inputText.value = text;
+    }
+
+    async function loadPDF(file) {
+      const buf = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+      let out = '';
+      for (let p = 1; p <= pdf.numPages; p++) {
+        const page = await pdf.getPage(p);
+        const content = await page.getTextContent();
+        out += content.items.map(it => it.str).join(' ') + '\n';
       }
-    }
-    
-    function updateTextInfo() {
-        const wordCount = state.words.length;
-        textInfoWordCount.textContent = wordCount;
-        if (wordCount > 0 && state.wpm > 0) {
-            const totalSeconds = (wordCount / state.wpm) * 60;
-            textInfoTime.textContent = formatMinutesSeconds(totalSeconds);
-        } else {
-            textInfoTime.textContent = '0m 0s';
-        }
+      inputText.value = out.trim();
+      loadWordsFromText(out);
     }
 
-    function setWPM(val) {
-      const n = Math.min(1000, Math.max(50, Math.round(val)));
-      state.wpm = n;
-      wpmInput.value = String(n);
-      wpmRange.value = String(n);
-      updateTextInfo();
-      if (state.playing) restartPlaybackTimer();
-    }
-
-    function setTextSize(px) {
-      const n = Math.min(120, Math.max(20, Math.round(px)));
-      state.textSize = n;
-      sizeInput.value = String(n);
-      sizeRange.value = String(n);
-      currentWordEl.style.fontSize = n + 'px';
-      // Make fullscreen text larger on mobile
-      const fullscreenSize = window.innerWidth < 768 ? n * 1.2 : Math.max(n, 72);
-      fullscreenWordEl.style.fontSize = fullscreenSize + 'px';
-    }
-
-    function setBrightness(percent) {
-      const n = Math.min(100, Math.max(0, Math.round(percent)));
-      state.brightness = n;
-      brightnessRange.value = String(n);
-      brightnessLabel.textContent = `${n}%`;
-      appRoot.style.filter = `brightness(${n/100})`;
-    }
-
-    function stopTimers() {
-      if (state.playTimer) clearInterval(state.playTimer);
-      if (state.timeTimer) clearInterval(state.timeTimer);
-      state.playTimer = null;
-      state.timeTimer = null;
-    }
-
-    function restartPlaybackTimer() {
-        // Unchanged logic
-    }
-
-    function startTimeCounter() {
-        // Unchanged logic
-    }
-
-    async function maybePromptFullscreen() {
-        // Unchanged logic
-    }
-
-    function playPlayback() {
-      if (!state.words.length) {
-        showModal({ title: 'No text', message: 'Please paste or load some text first.' });
-        return;
+    async function loadEPUB(file) {
+      const ab = await file.arrayBuffer();
+      const zip = await JSZip.loadAsync(ab);
+      // 1) Find rootfile from META-INF/container.xml
+      const containerXML = await zip.file('META-INF/container.xml').async('string').catch(()=>'');
+      if (!containerXML) { alert('Invalid EPUB (no container.xml)'); return; }
+      const cdoc = new DOMParser().parseFromString(containerXML, 'application/xml');
+      const rootPath = cdoc.querySelector('rootfile')?.getAttribute('full-path');
+      if (!rootPath) { alert('Invalid EPUB (no rootfile)'); return; }
+      const rootDir = rootPath.substring(0, rootPath.lastIndexOf('/') + 1);
+      const opf = await zip.file(rootPath).async('string');
+      const opfDoc = new DOMParser().parseFromString(opf, 'application/xml');
+      const manifest = new Map();
+      opfDoc.querySelectorAll('manifest > item').forEach(it => {
+        manifest.set(it.getAttribute('id'), it.getAttribute('href'));
+      });
+      const spineIds = Array.from(opfDoc.querySelectorAll('spine > itemref')).map(n => n.getAttribute('idref'));
+      let text = '';
+      for (const id of spineIds) {
+        const href = manifest.get(id);
+        if (!href) continue;
+        const path = rootDir + href;
+        const file = zip.file(path);
+        if (!file) continue;
+        const xhtml = await file.async('string');
+        const doc = new DOMParser().parseFromString(xhtml, 'text/html');
+        // Remove scripts/styles and get body text
+        doc.querySelectorAll('script,style,noscript').forEach(el => el.remove());
+        const chunk = doc.body?.innerText || '';
+        text += '\n' + chunk + '\n';
       }
-      state.playing = true;
-      startPauseBtn.textContent = 'Pause';
-      startPauseBtn.classList.remove('bg-blue-600');
-      startPauseBtn.classList.add('bg-orange-500');
-      // logEvent('Playback started.');
-      restartPlaybackTimer();
-      startTimeCounter();
-    }
-
-    function pausePlayback() {
-      if (!state.playing) return;
-      state.playing = false;
-      stopTimers();
-      state.pauseCount += 1;
-      // updateStatsUI();
-      startPauseBtn.textContent = 'Resume';
-      startPauseBtn.classList.remove('bg-orange-500');
-      startPauseBtn.classList.add('bg-blue-600');
-      // logEvent(`Playback paused.`);
-    }
-
-    function togglePlayback() {
-      if (state.playing) {
-        pausePlayback();
-      } else {
-        if (document.fullscreenElement) {
-          playPlayback();
-          return;
-        }
-        maybePromptFullscreen().then(playPlayback);
-      }
-    }
-    
-    async function enterFullscreen() { /* Unchanged */ }
-    async function exitFullscreen() { /* Unchanged */ }
-    function toggleFullscreen() { /* Unchanged */ }
-
-    function nudgeWord(delta) {
-      if (!state.words.length) return;
-      const next = Math.min(Math.max(0, state.index + delta), state.words.length - 1);
-      if (next !== state.index) {
-        state.index = next;
-        updateWordDisplays();
-      }
-    }
-    
-    function resetForNewText() {
-        // Unchanged logic, but simplified button text
-        startPauseBtn.textContent = 'Start';
+      text = text.replace(/\n{2,}/g, '\n');
+      inputText.value = text.trim();
+      loadWordsFromText(text);
     }
 
     async function handleFile(file) {
-        if (!file) return;
-        
-        const ext = file.name.split('.').pop().toLowerCase();
-        let text = '';
-
-        showToast('Processing file...');
-        try {
-            if (ext === 'txt') {
-                text = await file.text();
-            } else if (ext === 'pdf') {
-                const buf = await file.arrayBuffer();
-                text = await extractTextFromPDF(buf);
-            } else if (ext === 'epub') {
-                const buf = await file.arrayBuffer();
-                text = await extractTextFromEPUB(buf);
-            } else {
-                showModal({ title: 'Invalid File', message: 'Please use a .txt, .pdf, or .epub file.' });
-                return;
-            }
-            
-            inputTextEl.value = text;
-            state.loadedFileName = file.name;
-            state.words = sanitizeAndSplit(text);
-            resetForNewText();
-            showToast(`File "${file.name}" loaded`);
-        } catch (err) {
-            console.error(err);
-            showModal({ title: 'File error', message: 'Could not read or convert the selected file.' });
-        }
+      const ext = (file.name.split('.').pop() || '').toLowerCase();
+      if (ext === 'txt') return loadTXT(file);
+      if (ext === 'pdf') return loadPDF(file);
+      if (ext === 'epub') return loadEPUB(file);
+      // Fallback by MIME
+      if (file.type === 'text/plain') return loadTXT(file);
+      alert('Unsupported file type: ' + file.name);
     }
 
-    // ======= Listeners =======
-    startPauseBtn.addEventListener('click', togglePlayback);
-    fullscreenBtn.addEventListener('click', toggleFullscreen);
+    // === UI Events ===
+    btnPlay.addEventListener('click', start);
+    btnPause.addEventListener('click', stop);
+
+    wpmSlider.addEventListener('input', e => setWPM(e.target.value));
+    wpmNumber.addEventListener('input', e => setWPM(e.target.value));
+    sizeSlider.addEventListener('input', e => setFontSize(e.target.value));
+    sizeNumber.addEventListener('input', e => setFontSize(e.target.value));
+
+    btnUseText.addEventListener('click', () => {
+      loadWordsFromText(inputText.value);
+    });
+
+    fileInput.addEventListener('change', async (e) => {
+      const f = e.target.files?.[0]; if (f) await handleFile(f);
+      e.target.value = '';
+    });
+
+    // Drag & drop onto textarea (files only)
+    inputText.addEventListener('dragover', (e) => { e.preventDefault(); });
+    inputText.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      const files = e.dataTransfer?.files; if (!files || !files.length) return;
+      await handleFile(files[0]);
+    });
+
+    // Tap to play/pause, swipe to navigate
+    displayEl.addEventListener('click', () => {
+      playing ? stop() : start();
+    });
+    let touchX = null, touchY = null;
+    displayEl.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        touchX = e.touches[0].clientX; touchY = e.touches[0].clientY;
+      }
+    }, { passive: true });
+    displayEl.addEventListener('touchend', (e) => {
+      if (touchX == null) return;
+      const dx = (e.changedTouches[0].clientX - touchX);
+      const dy = (e.changedTouches[0].clientY - touchY);
+      const TH = 30; // px threshold
+      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > TH) {
+        // Swipe left/right
+        stop();
+        if (dx < 0) nextWord(); else prevWord();
+      } else {
+        // Tap
+        playing ? stop() : start();
+      }
+      touchX = touchY = null;
+    }, { passive: true });
+
+    // Keyboard quickies (space, arrows, F)
+    window.addEventListener('keydown', (e) => {
+      if (e.target && ['INPUT','TEXTAREA'].includes(e.target.tagName)) return;
+      if (e.code === 'Space') { e.preventDefault(); playing ? stop() : start(); }
+      if (e.code === 'ArrowRight') { stop(); nextWord(); }
+      if (e.code === 'ArrowLeft') { stop(); prevWord(); }
+      if (e.code === 'KeyF') { toggleFullscreen(); }
+    });
+
+    // Fullscreen
+    function isFullscreen() { return document.fullscreenElement != null; }
+    function toggleFullscreen() {
+      const el = document.documentElement; // go immersive
+      if (!isFullscreen()) el.requestFullscreen({ navigationUI: 'hide' }).catch(()=>{});
+      else document.exitFullscreen().catch(()=>{});
+    }
+    btnFullscreen.addEventListener('click', toggleFullscreen);
 
     document.addEventListener('fullscreenchange', () => {
-      if (!document.fullscreenElement) exitFullscreen();
-      else enterFullscreen();
+      const controls = document.querySelectorAll('header, section.grid, section.mt-4, footer');
+      controls.forEach(el => el.classList.toggle('hidden', isFullscreen()));
+      document.getElementById('stage').classList.toggle('mt-6', !isFullscreen());
+      // Force display background to pure black in fullscreen
+      if (isFullscreen()) {
+        displayEl.classList.add('bg-black');
+      } else {
+        displayEl.classList.remove('bg-black');
+      }
     });
 
-    window.addEventListener('keydown', (e) => { /* Unchanged */ });
-
-    // --- Touch Controls ---
-    function handleTouchStart(e) {
-        state.touchStartX = e.touches[0].clientX;
-        state.touchStartY = e.touches[0].clientY;
-    }
-
-    function handleTouchEnd(e) {
-        if (!state.touchStartX || !state.touchStartY) return;
-
-        const touchEndX = e.changedTouches[0].clientX;
-        const touchEndY = e.changedTouches[0].clientY;
-        
-        const deltaX = touchEndX - state.touchStartX;
-        const deltaY = touchEndY - state.touchStartY;
-
-        // Reset start points
-        state.touchStartX = 0;
-        state.touchStartY = 0;
-
-        // Check if it's more of a horizontal swipe than a vertical scroll
-        if (Math.abs(deltaX) > Math.abs(deltaY)) {
-            // It's a swipe
-            if (Math.abs(deltaX) > 50) { // Swipe threshold
-                if (state.playing) pausePlayback();
-                nudgeWord(deltaX > 0 ? -1 : 1); // Swipe right = prev, Swipe left = next
-                e.preventDefault();
-            } else {
-                // It's a tap
-                togglePlayback();
-            }
-        } else {
-             // It's a tap or vertical scroll, treat as tap
-             if (Math.abs(deltaX) < 10 && Math.abs(deltaY) < 10) {
-                togglePlayback();
-             }
-        }
-    }
-
-    [displayWrapper, fullscreenOverlay].forEach(el => {
-        el.addEventListener('touchstart', handleTouchStart, { passive: true });
-        el.addEventListener('touchend', handleTouchEnd, { passive: false });
-    });
-
-
-    tabButtons.forEach(btn => btn.addEventListener('click', () => { /* Unchanged */ }));
-    wpmInput.addEventListener('input', () => setWPM(Number(wpmInput.value || 0)));
-    wpmRange.addEventListener('input', () => setWPM(Number(wpmRange.value)));
-    sizeInput.addEventListener('input', () => setTextSize(Number(sizeInput.value || 0)));
-    sizeRange.addEventListener('input', () => setTextSize(Number(sizeRange.value)));
-    brightnessRange.addEventListener('input', () => setBrightness(Number(brightnessRange.value)));
-
-    // Combined File upload (click)
-    fileUpload.addEventListener('change', (e) => handleFile(e.target.files?.[0]));
-
-    // Combined File upload (drag and drop)
-    inputTextEl.addEventListener('dragover', (e) => { /* Unchanged */ });
-    inputTextEl.addEventListener('dragleave', (e) => { /* Unchanged */ });
-    inputTextEl.addEventListener('drop', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        inputTextEl.classList.remove('drag-over');
-        handleFile(e.dataTransfer?.files?.[0]);
-    });
-
-    let syncTimer = null;
-    inputTextEl.addEventListener('input', () => {
-      if (syncTimer) clearTimeout(syncTimer);
-      syncTimer = setTimeout(() => {
-        state.words = sanitizeAndSplit(inputTextEl.value);
-        resetForNewText();
-      }, 250);
-    });
-
-    // ======= Converter Functions (unchanged logic) =======
-    async function extractTextFromPDF(arrayBuffer) { /* ... */ }
-    async function extractTextFromEPUB(arrayBuffer) { /* ... */ }
-    async function naiveEPUBText(zip) { /* ... */ }
-    function htmlToPlain(html) { /* ... */ }
-
-    // ======= Init =======
-    function init() {
-      setWPM(300);
-      setTextSize(state.textSize);
-      setBrightness(100);
-      inputTextEl.value = '';
-      state.words = [];
-      updateWordDisplays();
-      updateTextInfo();
-      currentWordEl.textContent = 'Ready?';
-      fullscreenWordEl.textContent = '';
-    }
-
-    // Fill in dummy functions to avoid errors if they are not fully included
-    const dummyFunc = () => {};
-    if (typeof formatTime !== 'function') formatTime = dummyFunc;
-    if (typeof formatMinutesSeconds !== 'function') formatMinutesSeconds = (s) => `${Math.floor(s/60)}m ${Math.round(s%60)}s`;
-    if (typeof logEvent !== 'function') logEvent = dummyFunc;
-    if (typeof showToast !== 'function') showToast = (msg) => console.log('Toast:', msg);
-    if (typeof showModal !== 'function') showModal = (opts) => alert(opts.message);
-    if (typeof hideModal !== 'function') hideModal = dummyFunc;
-    if (typeof sanitizeAndSplit !== 'function') sanitizeAndSplit = (t) => t.trim().split(/\s+/);
-    if (typeof restartPlaybackTimer !== 'function') restartPlaybackTimer = dummyFunc;
-    if (typeof startTimeCounter !== 'function') startTimeCounter = dummyFunc;
-    if (typeof maybePromptFullscreen !== 'function') maybePromptFullscreen = () => Promise.resolve(true);
-    if (typeof enterFullscreen !== 'function') enterFullscreen = dummyFunc;
-    if (typeof exitFullscreen !== 'function') exitFullscreen = dummyFunc;
-    if (typeof extractTextFromPDF !== 'function') extractTextFromPDF = () => Promise.reject('PDF function not loaded.');
-    if (typeof extractTextFromEPUB !== 'function') extractTextFromEPUB = () => Promise.reject('EPUB function not loaded.');
-    if (typeof naiveEPUBText !== 'function') naiveEPUBText = () => Promise.reject('EPUB function not loaded.');
-    if (typeof htmlToPlain !== 'function') htmlToPlain = (h) => h;
-
-    init();
+    // Init defaults
+    setWPM(300); setFontSize(72); showWord();
   </script>
 </body>
 </html>
