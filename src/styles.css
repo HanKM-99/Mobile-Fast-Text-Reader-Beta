@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: dark; }
+html, body, #root { height: 100%; }
+body { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Inter, sans-serif; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 9999px; }
+::-webkit-scrollbar-track { background: transparent; }
+.card { @apply rounded-2xl border border-white/10 bg-black/40 shadow-soft; }
+.btn { @apply px-3 py-2 rounded-xl text-sm font-semibold; }
+.btn-ghost { @apply bg-white/10 hover:bg-white/20; }
+.btn-primary { @apply bg-indigo-600 hover:bg-indigo-500 text-white; }
+.badge { @apply px-2 py-0.5 rounded-full text-xs bg-white/10; }
