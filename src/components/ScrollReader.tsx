@@ -53,10 +53,10 @@ export default function ScrollReader({ text, fontPx, pxPerSec }: Props){
         ref={containerRef}
         onPointerUp={onPointerUp}
         onDoubleClick={toggleFullscreen}
-        className="rounded-2xl border border-white/10 bg-black/50 shadow-soft w-full h-[60vh] overflow-y-auto p-5 leading-relaxed"
+        className="rounded-2xl card w-full h-[60vh] overflow-y-auto p-5 leading-relaxed"
         style={{ scrollBehavior: 'auto' }}
       >
-        <article className="prose prose-invert max-w-none">
+        <article className="prose max-w-none dark:prose-invert">
           <p style={{ fontSize: fontPx }} className="whitespace-pre-wrap">{text || 'Paste or import text to start…'}</p>
         </article>
       </div>

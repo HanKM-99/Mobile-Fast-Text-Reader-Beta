@@ -26,7 +26,7 @@ export async function getPrefs(): Promise<Prefs> {
     p = { id: 'prefs', wpm: 300, fontPx: 56, theme: 'dark', mode: 'rsvp', scrollPxPerSec: 120, updatedAt: Date.now() }
     await db.prefs.put(p)
   }
-  if (!('theme' in p)) p.theme = 'dark' as const
+  if (!('theme' in p)) p.theme = 'dark'
   if (!('fontPx' in p)) p.fontPx = 56
   if (!('mode' in p)) p.mode = 'rsvp'
   if (!('scrollPxPerSec' in p)) p.scrollPxPerSec = 120

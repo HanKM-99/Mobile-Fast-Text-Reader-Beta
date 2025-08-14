@@ -13,17 +13,6 @@ export default function WordPlayer({ text, wpm, fontPx }: Props){
 
   useEffect(()=>{ if(!playing) return; timer.current=window.setInterval(()=>{ setI(c=>Math.min(c+1,Math.max(0,words.length-1))) },delay); return()=>{ if(timer.current) window.clearInterval(timer.current) }},[playing,delay,words.length])
 
-  useEffect(()=>{
-    const onKey=(e:KeyboardEvent)=>{
-      if((e.target as HTMLElement)?.tagName?.match(/INPUT|TEXTAREA/)) return
-      if(e.code==='Space'){ e.preventDefault(); togglePlay() }
-      if(e.code==='ArrowRight') step(1)
-      if(e.code==='ArrowLeft') step(-1)
-      if(e.code==='Enter' && e.shiftKey) toggleFullscreen()
-    }
-    window.addEventListener('keydown',onKey); return()=>window.removeEventListener('keydown',onKey)
-  },[])
-
   function togglePlay(){ if(words.length) setPlaying(p=>!p) }
   function step(d:number){ setI(c=>Math.min(Math.max(0,c+d),Math.max(0,words.length-1))) }
 
@@ -49,8 +38,8 @@ export default function WordPlayer({ text, wpm, fontPx }: Props){
   return (
     <div className="w-full">
       <div ref={panelRef} onPointerUp={onPointerUp} onDoubleClick={toggleFullscreen}
-        className="rounded-2xl border border-white/10 bg-black/50 shadow-soft w-full h-[42vh] md:h-[50vh] flex items-center justify-center relative select-none cursor-pointer">
-        <span style={{fontSize:fontPx}} className="font-extrabold tracking-tight drop-shadow-[0_2px_8px_rgba(0,0,0,.25)]">{current}</span>
+        className="rounded-2xl card w-full h-[42vh] md:h-[50vh] flex items-center justify-center relative select-none cursor-pointer">
+        <span style={{fontSize:fontPx}} className="font-extrabold tracking-tight">{current}</span>
         <div className="absolute bottom-0 left-0 h-1 bg-indigo-600" style={{width:progress+'%'}}/>
       </div>
 

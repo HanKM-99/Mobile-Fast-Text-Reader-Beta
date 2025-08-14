@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
+// Must match your repo name exactly:
 const base = '/Mobile-Fast-Text-Reader-Beta/'
 
 export default defineConfig({
@@ -10,7 +11,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icon-192.png', 'icon-512.png'],
+      includeAssets: ['icon-192.png', 'icon-512.png', '404.html'],
       manifest: {
         name: 'Mobile Fast Text Reader',
         short_name: 'FastReader',

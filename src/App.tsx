@@ -25,10 +25,14 @@ export default function App(){
     setWpm(p.wpm); setFontPx(p.fontPx); setTheme(p.theme); setMode(p.mode); setPxPerSec(p.scrollPxPerSec)
   })() }, [])
 
-  useEffect(()=>{ const root=document.documentElement; if(theme==='dark') root.classList.add('dark'); else root.classList.remove('dark') }, [theme])
+  useEffect(()=>{
+    const root=document.documentElement
+    if(theme==='dark') root.classList.add('dark'); else root.classList.remove('dark')
+    savePrefs({ theme })
+  }, [theme])
+
   useEffect(()=>{ savePrefs({ wpm }) }, [wpm])
   useEffect(()=>{ savePrefs({ fontPx }) }, [fontPx])
-  useEffect(()=>{ savePrefs({ theme }) }, [theme])
   useEffect(()=>{ savePrefs({ mode }) }, [mode])
   useEffect(()=>{ savePrefs({ scrollPxPerSec: pxPerSec }) }, [pxPerSec])
 
@@ -45,7 +49,7 @@ export default function App(){
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-black via-surface to-black text-gray-100 pb-28">
+    <div className="app-root pb-28">
       <TopBar mode={mode} setMode={setMode} theme={theme} toggleTheme={()=>setTheme(t=>t==='dark'?'light':'dark')} />
 
       <main className="max-w-5xl mx-auto px-4 py-5 grid gap-6 lg:grid-cols-3">
@@ -64,10 +68,10 @@ export default function App(){
               onChange={e=>setText(e.target.value)}
               onDragOver={e=>e.preventDefault()}
               onDrop={e=>{ e.preventDefault(); const f=e.dataTransfer.files?.[0]; if(f) importFile(f) }}
-              className="mt-2 w-full h-40 rounded-xl bg-black/40 border border-white/10 p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-600"
+              className="mt-2 w-full h-40 rounded-xl border p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-600 bg-white dark:bg-black/40 border-black/10 dark:border-white/10"
               placeholder="Paste text here, or drop a .txt/.pdf/.epub…"
             />
-            <div className="mt-2 flex items-center gap-3 text-xs text-white/70">
+            <div className="mt-2 flex items-center gap-3 text-xs text-black/70 dark:text-white/70">
               <span className="badge">Words: {wordCount}</span>
               <span className="badge">Est: {estimate}</span>
             </div>
@@ -81,7 +85,7 @@ export default function App(){
 
           <div className="card p-4">
             <h3 className="text-sm font-semibold mb-2">Tips</h3>
-            <ul className="text-xs text-white/70 space-y-1 list-disc pl-5">
+            <ul className="text-xs text-black/70 dark:text-white/70 space-y-1 list-disc pl-5">
               <li>Single tap: play/pause (both modes)</li>
               <li>Double tap: fullscreen toggle</li>
               <li>Keyboard: Space/Arrows; Shift+Enter fullscreen</li>
